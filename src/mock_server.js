@@ -110,7 +110,7 @@ app.post('/pingbursts', (req, res) => {
   repeat_n_times(
     n,
     interval,
-    (destination, size, records) => {
+    (dest_ip, size, records) => {
       ({ duration, was_success } = get_mock_ping_result());
       (start = timestamp()),
         (ping_record = {
