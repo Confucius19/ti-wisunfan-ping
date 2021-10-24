@@ -10,10 +10,6 @@ Functionality
  
    NodeID := Node's IP address
    NodeID1 = always Border Router
-
-
-
-
 */
 
 let dbus = require('dbus-next');
@@ -21,6 +17,32 @@ const DBUS_BUS_NAME = 'com.nestlabs.WPANTunnelDriver';
 const DBUS_INTERFACE = 'com.nestlabs.WPANTunnelDriver';
 const DBUS_META_OBJECT_PATH = '/com/nestlabs/WPANTunnelDriver';
 const DBUS_WPAN0_OBJECT_PATH = DBUS_META_OBJECT_PATH + '/wpan0';
+
+
+
+
+async function wpan_get_prop(property_name){
+    const bus = dbus.systemBus();
+    const object_path = DBUS_WPAN0_OBJECT_PATH;
+    const method = "GetProp";
+    // console.log("method", method)
+    // console.log("path: ", object_path);
+    let methodCall = new dbus.Message({
+        destination: DBUS_BUS_NAME,
+        path: object_path,
+        interface: DBUS_INTERFACE,
+        member: method,
+        signature: "s",
+        body: [property_name]
+    })
+    let reply = await bus.call(methodCall);
+    return reply.body[1]
+
+}
+
+// wpan_get_prop("connecteddevices").then((info)=>console.log(info))
+
+
 
 function parse_connected_devices(text) {
   let ip_addr_list = [];
@@ -57,18 +79,20 @@ async function get_all_routes() {
     prop = prop_obj.getInterface(DBUS_INTERFACE);
   }
 
-  connected_devices = await gen_wpan_property('connecteddevices');
-  dodag_route_dest = await gen_wpan_property('dodagroutedest');
-  dodag_route = await gen_wpan_property('dodagroute');
+  connected_devices = await wpan_get_prop('connecteddevices');
+  dodag_route_dest = await wpan_get_prop('dodagroutedest');
+  dodag_route = await wpan_get_prop('dodagroute');
 
-  ip_addr_list = parse_connected_devices(connected_devices.Get());
+  ip_addr_list = parse_connected_devices(connected_devices);
   const routes = [];
   for (ip_addr of ip_addr_list) {
     dodag_route_dest.Set(ip_addr);
-    route = parse_dodag_route(dodag_route.Get());
+    route = parse_dodag_route(dodag_route);
     routes.push(route);
   }
   return routes;
 }
+
+// get_all_routes().then((routes)=>{console.log("Routes",routes)})
 
 module.exports = get_all_routes;
