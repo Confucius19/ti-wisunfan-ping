@@ -114,8 +114,8 @@ app.post('/pingbursts', (req, res) => {
       ({ duration, was_success } = get_mock_ping_result());
       (start = timestamp()),
         (ping_record = {
-          source: '2020::A',
-          destination,
+          source_ip: '2020::A',
+          dest_ip,
           start,
           duration,
           packet_size: size,
