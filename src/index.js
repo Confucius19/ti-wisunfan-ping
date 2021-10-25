@@ -2,12 +2,18 @@ let express = require('express');
 let cors = require('cors');
 let ping = require('net-ping');
 let os = require('os');
+const fs = require('fs');
 
 const interfaces = os.networkInterfaces(); //gets all the network interfaces connected to the device
 
 // const source_ip = interfaces['lo'][0]['address']; //prints the ip address used to ping
 const source_ip =
-  interfaces['Loopback Pseudo-Interface 1'][0]['address']; //prints the ip address used to ping
+  interfaces['lo'][0]['address']; //prints the ip address used to ping
+
+fs.writeFile('Ping_Results.csv', 'ping_burst_id,source_ip,dest_ip,start_time,duration,pcket_size,was_success\n', function (err) {
+  if (err) throw err;
+  //console.log('File is created successfully.');
+});//creation of the csv file
 
 const app = express();
 const PORT = 8000;
@@ -72,6 +78,7 @@ app.post('/pingbursts', (req, res) => {
         function (error, dest_ip, sent, rcvd) {
           ms = rcvd - sent;
           if (error) {
+		//console.log(error.toString());
             //console.log("source: " + sourceIP + " target: " + target + " error:" + error.toString() + " start time: " + sent + " duration: " + ms + "ms packet size: " + size + "bytes pass/fail: fail");
             was_success = false;
             ping_record = {
@@ -83,6 +90,10 @@ app.post('/pingbursts', (req, res) => {
               was_success,
             };
             records.push(ping_record);
+	   fs.appendFile('Ping_Results.csv', id+','+source_ip+','+dest_ip+','+timestamp(sent).replace(',','')+','+-1+','+size+',false\n', function (err) {
+		  if (err) throw err;
+		  //console.log('appended successfully.');
+		});
           } else {
             //console.log("source: " + sourceIP + " target: " + target + " start time: " + sent + " duration: " + ms + "ms packet size: " + size + "bytes pass/fail: pass");
             was_success = true;
@@ -95,6 +106,10 @@ app.post('/pingbursts', (req, res) => {
               was_success,
             };
             records.push(ping_record);
+	    fs.appendFile('Ping_Results.csv', id+','+source_ip+','+dest_ip+','+timestamp(sent).replace(',','')+','+ms+','+size+',true\n', function (err) {
+		  if (err) throw err;
+		  //console.log('appended successfully.');
+		});
           }
         },
       );
