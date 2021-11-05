@@ -3,17 +3,33 @@ let cors = require('cors');
 let ping = require('net-ping');
 let os = require('os');
 const fs = require('fs');
+const { exec } = require('child_process');
+var chokidar = require('chokidar');
 
+//ping
 const interfaces = os.networkInterfaces(); //gets all the network interfaces connected to the device
-
-// const source_ip = interfaces['lo'][0]['address']; //prints the ip address used to ping
 const source_ip =
   interfaces['lo'][0]['address']; //prints the ip address used to ping
 
 fs.writeFile('Ping_Results.csv', 'ping_burst_id,source_ip,dest_ip,start_time,duration,pcket_size,was_success\n', function (err) {
   if (err) throw err;
-  //console.log('File is created successfully.');
 });//creation of the csv file
+
+
+//gw bringup
+const port_path = '/dev/ttyACM0';
+let watcher = chokidar.watch(port_path, {ignored: /^\./, persistent: true});
+let connected = false;
+
+watcher
+  .on('add', device_added)
+  .on('unlink', device_removed)
+  .on('error', function(error) {console.error(error);})
+
+// Print connection status every 10s
+//setInterval(flash_connection_status, 1000);
+
+
 
 const app = express();
 const PORT = 8000;
@@ -129,7 +145,37 @@ app.get('/pingbursts/:id', (req, res) => {
 app.get('/pingbursts', (req, res) => {
   res.json(pingbursts);
 });
-
+app.get('/gw_bringup', (req, res) => {
+  res.json(connected)
+})
 app.listen(PORT, () => {
   console.log(`Listening on http://localhost:${PORT}`);
 });
+
+//gw bringup
+function flash_connection_status() {
+  console.log('Device connected: ' + connected);
+}
+
+function device_added() {
+  console.log('Border router connected');
+  start_wpantund();
+  connected = true;
+}
+
+function device_removed() {
+  console.log('Border router disconnected');
+  connected = false;
+}
+
+function start_wpantund() {
+  console.log('Starting wfantund');
+  exec('sudo /usr/local/sbin/wfantund -s ' + port_path + ' &', (error, stdout, stderr) => {
+    if (error) {
+      console.error(`exec error: ${error}`);
+      return;
+    }
+    console.log(`stdout: ${stdout}`);
+    console.error(`stderr: ${stderr}`);
+  });
+}
